@@ -1,0 +1,36 @@
+{
+  "dwellTimeMs": 800,
+  "gazeTolerancePx": 30,
+  "conditions": ["dwell", "binary_phoneme", "rich_phoneme"],
+  "counterbalanceOrders": [
+    ["dwell", "binary_phoneme", "rich_phoneme"],
+    ["binary_phoneme", "rich_phoneme", "dwell"],
+    ["rich_phoneme", "dwell", "binary_phoneme"],
+    ["dwell", "rich_phoneme", "binary_phoneme"],
+    ["rich_phoneme", "binary_phoneme", "dwell"],
+    ["binary_phoneme", "dwell", "rich_phoneme"]
+  ],
+  "trialsPerTaskPerCondition": 5,
+  "practiceTrials": 3,
+  "phonemeMapping": {
+    "AY": "select",
+    "AW": "back",
+    "UW": "swipe",
+    "Y": "drag"
+  },
+  "alsSimulation": {
+    "phonemeConfirmationLatencyMs": 180,
+    "phonemeHoldMinMs": 300,
+    "phonemeHoldMaxMs": 700,
+    "missRate": 0.00,
+    "falsePositiveRate": 0.00,
+    "cooldownMs": 500
+  },
+  "ui": {
+    "cursorSize": 24,
+    "feedbackDurationMs": 1500,
+    "targetHighlightColor": "#7bed9f",
+    "errorHighlightColor": "#ff4757",
+    "dwellProgressColor": "#ffa502"
+  }
+}

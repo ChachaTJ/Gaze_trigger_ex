@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# Large files
+*.pt
+*.pth
+*.hdf5
+*.csv
+*.log
+
+# Mac
+.DS_Store
+
+# Temporary files
+.agent/
+outputs/
+data/
+sherpa_model/
+model/
+lib/human/models/

@@ -1,0 +1,51 @@
+name: b2txt25_UI
+channels:
+  - conda-forge
+
+  - pytorch
+  - defaults
+
+dependencies:
+  - python=3.10
+  - pip
+  - numpy
+  - xz
+  - libxml2
+  - libpng
+  - libtiff
+  - libjpeg-turbo
+  - lcms2
+  - zstd
+
+  - pip:
+      - torch==2.1.1
+      - torchvision==0.16.1
+      - torchaudio==2.1.1
+      - hydra-core==1.3.2
+      - optuna==3.3.0
+      - jiwer==3.0.3
+      - levenshtein==0.21.1
+      - python-levenshtein==0.21.1
+      - editdistance==0.6.2
+      - lion-pytorch==0.1.2
+      - wandb==0.15.12
+      - seaborn==0.12.2
+      - matplotlib==3.7.2
+      - protobuf==4.25.8
+      - flask
+      - flask-cors
+      - requests
+      - tqdm
+      - redis
+      - sqlalchemy
+      - docker-pycreds
+      - greenlet
+      - setuptools
+      - wheel
+      - filelock
+      - packaging
+      - jinja2
+      - markupsafe
+      - idna
+      - charset-normalizer
+      - urllib3

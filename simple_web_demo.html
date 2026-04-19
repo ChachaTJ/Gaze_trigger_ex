@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple EyeGestures Demo</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+        #controls {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #status {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        .cursor {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(255, 0, 0, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%);
+            display: none;
+            border: 2px solid red;
+        }
+        .calibration-point {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background-color: blue;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button id="startBtn">Start Eye Tracking</button>
+        <button id="stopBtn" disabled>Stop</button>
+        <div id="status">Status: Disconnected</div>
+        <div id="coords">X: 0, Y: 0</div>
+    </div>
+
+    <div id="cursor" class="cursor"></div>
+    <div id="calibPoint" class="calibration-point"></div>
+
+    <script>
+        const socket = io();
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDiv = document.getElementById('status');
+        const coordsDiv = document.getElementById('coords');
+        const cursor = document.getElementById('cursor');
+        const calibPoint = document.getElementById('calibPoint');
+
+        let isTracking = false;
+
+        socket.on('connect', () => {
+            statusDiv.textContent = 'Status: Connected';
+        });
+
+        socket.on('disconnect', () => {
+            statusDiv.textContent = 'Status: Disconnected';
+            resetUI();
+        });
+
+        startBtn.addEventListener('click', () => {
+            socket.emit('start_gaze');
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusDiv.textContent = 'Status: Starting...';
+        });
+
+        stopBtn.addEventListener('click', () => {
+            socket.emit('stop_gaze');
+            resetUI();
+        });
+
+        function resetUI() {
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            cursor.style.display = 'none';
+            calibPoint.style.display = 'none';
+            statusDiv.textContent = 'Status: Stopped';
+        }
+
+        socket.on('gaze_data', (data) => {
+            if (data.calibrating) {
+                statusDiv.textContent = `Status: Calibrating (${data.calib_progress})`;
+                cursor.style.display = 'none';
+                
+                if (data.calib_point) {
+                    calibPoint.style.display = 'block';
+                    calibPoint.style.left = (data.calib_point.x * 100) + '%';
+                    calibPoint.style.top = (data.calib_point.y * 100) + '%';
+                }
+            } else {
+                statusDiv.textContent = 'Status: Tracking';
+                calibPoint.style.display = 'none';
+                cursor.style.display = 'block';
+
+                const x = data.x * window.innerWidth;
+                const y = data.y * window.innerHeight;
+
+                cursor.style.left = x + 'px';
+                cursor.style.top = y + 'px';
+                
+                coordsDiv.textContent = `X: ${Math.round(x)}, Y: ${Math.round(y)}`;
+            }
+        });
+    </script>
+</body>
+</html>

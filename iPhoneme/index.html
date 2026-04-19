@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iPhoneme — ALS-Oriented Proxy Experiment</title>
+    <meta name="description" content="iPhoneme experiment prototype: proxy-user analogue evaluation of phoneme-confirmed gaze interaction under ALS-relevant constraints.">
+    <link rel="stylesheet" href="css/experiment.css">
+</head>
+
+<body>
+    <!-- Gaze Cursor -->
+    <div id="gaze-cursor"></div>
+
+    <!-- Phoneme Flash Indicator -->
+    <div id="phoneme-flash"></div>
+
+    <!-- Camera Preview -->
+    <div id="camera-preview">
+        <video id="preview-video" autoplay playsinline muted></video>
+    </div>
+
+    <!-- ==================== SETUP SCREEN ==================== -->
+    <div class="screen screen-active" id="screen-setup">
+        <div class="setup-screen">
+            <div class="setup-card">
+                <h1 class="setup-title">🎯 iPhoneme</h1>
+                <p class="setup-subtitle">
+                    ALS-Oriented Gaze + Phoneme Interaction<br>
+                    Proxy-User Analogue Evaluation Prototype
+                </p>
+
+                <div class="setup-disclaimer">
+                    ⚠️ This prototype implements a proxy / analogue evaluation of an ALS-oriented 
+                    interaction system using an emulated phoneme detector. It does not validate 
+                    ALS end-user efficacy and is not a substitute for representative-user testing.
+                </div>
+
+                <form id="setup-form" class="setup-form">
+                    <label class="setup-label">
+                        Participant ID
+                        <input type="text" id="setup-participant-id" class="setup-input" 
+                               value="P01" placeholder="P01" required>
+                    </label>
+
+                    <label class="setup-label">
+                        Session ID
+                        <input type="text" id="setup-session-id" class="setup-input" 
+                               value="S01" placeholder="S01" required>
+                    </label>
+
+                    <label class="setup-label">
+                        Initial Condition
+                        <select id="setup-condition" class="setup-select">
+                            <option value="dwell">A: Dwell Baseline</option>
+                            <option value="binary_phoneme">B: Binary Phoneme (AY only)</option>
+                            <option value="rich_phoneme" selected>C: Rich iPhoneme Vocabulary</option>
+                        </select>
+                    </label>
+
+                    <label class="setup-label">
+                        Phoneme Provider
+                        <select id="setup-provider" class="setup-select">
+                            <option value="keyboard" selected>Keyboard Debug (1-4, Spacebar to Hold)</option>
+                            <option value="mouth">👄 Mouth Trigger (Open/Close)</option>
+                            <option value="emulated">Emulated ALS Detector</option>
+                            <option value="live">🎤 Live Voice (Whisper STT → G2P Phonemes)</option>
+                        </select>
+                    </label>
+
+                    <button type="submit" class="setup-btn" id="setup-start-btn">
+                        🚀 Start Experiment Session
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== EXPERIMENT SCREEN ==================== -->
+    <div class="screen" id="screen-experiment">
+        <div class="experiment-layout">
+            <!-- Condition Banner -->
+            <div class="condition-banner" id="condition-banner">
+                Condition A: Dwell Baseline
+            </div>
+
+            <!-- Status Bar -->
+            <div class="status-bar">
+                <div class="status-item">
+                    <span class="status-dot" id="tracking-status-dot"></span>
+                    <span id="tracking-status-text">Head Tracking: Off</span>
+                </div>
+                <div class="status-item">
+                    <span class="status-dot" id="provider-status-dot"></span>
+                    <span id="provider-status-text">Provider: —</span>
+                </div>
+                <div class="status-item" style="font-family: 'Courier New', monospace; font-size: 11px; color: var(--accent-green);">
+                    Pointer: <span id="pointer-coords">---</span>
+                </div>
+            </div>
+
+            <!-- Live Phoneme Stream Display (visible in Live Voice mode) -->
+            <div class="phoneme-stream-bar" id="phoneme-stream-bar" style="display: none;">
+                <div class="stream-section">
+                    <span class="stream-label">🎤 STT:</span>
+                    <span class="stream-text" id="live-stt-text">—</span>
+                </div>
+                <div class="stream-section">
+                    <span class="stream-label">📢 Phonemes:</span>
+                    <span class="stream-phonemes" id="live-phonemes">—</span>
+                </div>
+                <div class="stream-section">
+                    <span class="stream-dot" id="ws-status-dot"></span>
+                    <span id="ws-status-text" style="font-size: 11px;">WS: —</span>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="experiment-content">
+                <!-- Task Viewport -->
+                <div class="task-viewport">
+                    <!-- Control buttons row -->
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px; justify-content: center; flex-wrap: wrap;">
+                        <button onclick="app.startHeadCalibration()" 
+                                style="padding: 6px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                            ⚙️ Head Calibration (Alt+H)
+                        </button>
+                        <button onclick="app.startMouthCalibration()"
+                                style="padding: 6px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                            👄 Mouth Calibration (Alt+M)
+                        </button>
+                        <button onclick="togglePreview()"
+                                style="padding: 6px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; border-radius: 8px; cursor: pointer; font-size: 12px;" id="preview-toggle-btn">
+                            📷 Preview: Off
+                        </button>
+                    </div>
+
+                    <!-- Task Container -->
+                    <div id="task-container">
+                        <div class="task-area" style="text-align: center; padding: 60px 20px;">
+                            <h2 style="margin-bottom: 12px; font-size: 22px;">Ready to Begin</h2>
+                            <p style="color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6;">
+                                After calibration, you can start the experiment directly!
+                            </p>
+                            <button id="auto-start-first-btn" class="setup-btn" style="width: auto; padding: 12px 40px; margin: 0 auto; display: block;" onclick="window.app.startTrial('directed_selection', false)">
+                                🚀 Start First Task Now
+                            </button>
+                            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; margin-top: 24px;">
+                                1. Calibrate head tracking first<br>
+                                2. Calibrate mouth tracking (optional)<br>
+                                3. Click above to begin automatically
+                            </p>
+                            <div style="margin-top: 24px; padding: 16px; background: rgba(0,0,0,0.2); border-radius: 12px; display: inline-block;">
+                                <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">Keyboard Shortcuts (Debug Provider)</div>
+                                <div style="display: flex; gap: 16px; font-size: 12px;">
+                                    <span><kbd>1</kbd> AY (Select)</span>
+                                    <span><kbd>2</kbd> AW (Back)</span>
+                                    <span><kbd>3</kbd> UW (Swipe)</span>
+                                    <span><kbd>4|Spc</kbd> Y (Hold=Touch)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Command Legend -->
+                <div class="command-legend" id="command-legend">
+                    <div class="legend-title">Commands</div>
+                    <div class="legend-item">
+                        <span class="legend-key">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Experimenter Panel Container -->
+    <div id="experimenter-panel-container"></div>
+
+    <!-- Questionnaire Container -->
+    <div id="questionnaire-container"></div>
+
+    <!-- ==================== SCRIPTS ==================== -->
+    
+    <!-- Head Tracker & Calibration (non-module, from parent directory) -->
+    <script src="../head_calibration.js"></script>
+    <script src="../mouth_calibration.js"></script>
+    <script src="../gesture_controller.js"></script>
+
+    <script type="module">
+        import HeadTracker from '../head_tracker.js';
+        import { ExperimentApp } from './js/experiment_app.js';
+
+        // Expose HeadTracker globally for calibration modules
+        // Configure model paths relative to project root (not iPhoneme subdir)
+        window.HeadTracker = HeadTracker;
+        window.HeadTrackerOptions = {
+            humanPath: '../lib/human/human.esm.js',
+            modelsPath: '../lib/human/models/'
+        };
+
+        // Create app instance
+        const app = new ExperimentApp();
+        window.app = app;
+
+        // Camera preview toggle
+        window.togglePreview = function() {
+            const container = document.getElementById('camera-preview');
+            const btn = document.getElementById('preview-toggle-btn');
+            const video = document.getElementById('preview-video');
+            const isOn = container.style.display === 'block';
+            
+            if (isOn) {
+                container.style.display = 'none';
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(t => t.stop());
+                    video.srcObject = null;
+                }
+                btn.textContent = '📷 Preview: Off';
+            } else {
+                container.style.display = 'block';
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => { video.srcObject = stream; })
+                    .catch(e => console.warn('Preview failed:', e));
+                btn.textContent = '📷 Preview: On';
+            }
+        };
+
+        // Initialize
+        app.init().then(() => {
+            console.log('[iPhoneme] Experiment prototype ready');
+        }).catch(err => {
+            console.error('[iPhoneme] Init failed:', err);
+        });
+    </script>
+</body>
+
+</html>
