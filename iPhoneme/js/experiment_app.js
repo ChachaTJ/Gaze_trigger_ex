@@ -377,10 +377,9 @@ export class ExperimentApp {
     _doSelect(triggerSource) {
         if (!this.activeTask || this.inputLocked) return;
 
-        const result = this.activeTask.handleSelect(triggerSource, this.pointerX, this.pointerY);
-        if (result && result.success) {
-            this._handleTrialResult(result);
-        }
+        // The task itself calls this.onComplete(result) which resolves the trial.
+        // Doing it here again causes double trial advancing (e.g., 1 -> 3 -> 5).
+        this.activeTask.handleSelect(triggerSource, this.pointerX, this.pointerY);
     }
 
     /**
