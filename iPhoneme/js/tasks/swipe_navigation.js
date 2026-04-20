@@ -247,9 +247,8 @@ export class SwipeNavigationTask {
                 triggerSource
             };
 
-            setTimeout(() => {
-                if (this.onComplete) this.onComplete(result);
-            }, 500);
+            // Call onComplete synchronously — ExperimentApp manages all timing
+            if (this.onComplete) this.onComplete(result);
             return result;
         } else {
             const card = document.getElementById('carousel-current-card');

@@ -50,6 +50,7 @@ export class ExperimentApp {
         // Input lock (cooldown during transitions)
         this.inputLocked = false;
         this._trialAdvancing = false;
+        this._lastCompletedTrialIndex = -1;
 
         // Timer IDs for cleanup
         this._autoStartFallbackTimer = null;
@@ -596,6 +597,8 @@ export class ExperimentApp {
         this._clearDwell();
         this.inputLocked = true;
 
+        console.log('[App] _advanceTrial called. Current engine index:', this.taskEngine.getState().trialIndex);
+
         const trialData = this.taskEngine.nextTrial();
         
         if (!trialData) {
@@ -676,9 +679,21 @@ export class ExperimentApp {
     }
 
     _handleTrialResult(result) {
-        // Guard: prevent double-call (e.g. both handleSelect return + onComplete)
-        if (this._trialAdvancing) return;
+        // Guard 1: re-entry (e.g. simultaneous dwell + keyboard)
+        if (this._trialAdvancing) {
+            console.warn('[App] _handleTrialResult blocked: already advancing');
+            return;
+        }
+
+        // Guard 2: stale/duplicate callback for a trial we already completed
+        const currentIndex = this.taskEngine.getState().trialIndex;
+        if (currentIndex === this._lastCompletedTrialIndex) {
+            console.warn('[App] _handleTrialResult blocked: trial', currentIndex, 'already completed');
+            return;
+        }
+
         this._trialAdvancing = true;
+        this._lastCompletedTrialIndex = currentIndex;
         this.inputLocked = true;
         this._clearDwell();
 
@@ -686,13 +701,15 @@ export class ExperimentApp {
         
         const msg = result.success ? '✅ Correct!' : '❌ Try again';
         const type = result.success ? 'success' : 'error';
-        UIComponents.showToast(msg, type, 1000);
+        UIComponents.showToast(msg, type, 1200);
 
-        // Auto-advance after delay
+        console.log(`[App] Trial ${currentIndex + 1} completed (success: ${result.success}). Advancing in 1500ms...`);
+
+        // Central timing: 1500ms = 500ms visual feedback + 1000ms toast display
         setTimeout(() => {
             this._trialAdvancing = false;
             this._advanceTrial();
-        }, 1200);
+        }, 1500);
     }
 
     _advanceCondition() {

@@ -231,9 +231,8 @@ export class DragTextSelectTask {
             triggerSource
         };
 
-        setTimeout(() => {
-            if (this.onComplete) this.onComplete(result);
-        }, 1000);
+        // Call onComplete synchronously — ExperimentApp manages all timing
+        if (this.onComplete) this.onComplete(result);
 
         return result;
     }

@@ -34,10 +34,11 @@ export class ConditionEngine {
                 description: 'Single phoneme confirmation (AY only)',
                 confirmationMethod: 'phoneme',
                 availableCommands: {
-                    select: { method: 'phoneme', phoneme: 'AY', label: 'Say AY / Press 1', hint: 'Produce AY phoneme to confirm' }
+                    select: { method: 'phoneme', phoneme: 'AY/AA', label: 'Say AH / Press 1', hint: 'Produce AH or AY phoneme to confirm' }
                 },
                 phonemeCommands: {
-                    'AY': 'select'
+                    'AY': 'select',
+                    'AA': 'select'
                 },
                 dwellEnabled: false
             },
@@ -49,13 +50,14 @@ export class ConditionEngine {
                 description: 'Full phoneme vocabulary (AY, AW, UW, Y)',
                 confirmationMethod: 'phoneme',
                 availableCommands: {
-                    select: { method: 'phoneme', phoneme: 'AY', label: 'AY / Key 1', hint: 'Select or commit' },
+                    select: { method: 'phoneme', phoneme: 'AY/AA', label: 'AH / Key 1', hint: 'Select or commit' },
                     back: { method: 'phoneme', phoneme: 'AW', label: 'AW / Key 2', hint: 'Back or cancel' },
                     swipe: { method: 'phoneme', phoneme: 'UW', label: 'UW / Key 3', hint: 'Swipe or next' },
                     drag: { method: 'phoneme', phoneme: 'Y', label: 'Y / Hold 4', hint: 'Hold to drag or select text' }
                 },
                 phonemeCommands: {
                     'AY': 'select',
+                    'AA': 'select',
                     'AW': 'back',
                     'UW': 'swipe',
                     'Y': 'drag'
