@@ -91,6 +91,7 @@ export class MouthProvider {
     _emitYEnd() {
         if (!this.mouthHeld) return;
         const now = performance.now();
+        const holdDuration = now - this.mouthStartTime;
         this.mouthHeld = false;
         this._emit({
             phoneme: 'Y',
@@ -100,7 +101,8 @@ export class MouthProvider {
             emittedAt: now,
             detectorLatencyMs: 0,
             synthetic: true,
-            holdDurationMs: now - this.mouthStartTime
+            holdDurationMs: holdDuration,
+            holdValid: holdDuration > 200
         });
         this.mouthStartTime = 0;
     }

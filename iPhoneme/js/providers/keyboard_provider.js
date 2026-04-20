@@ -128,6 +128,7 @@ export class KeyboardProvider {
 
     _emitYEnd() {
         const now = performance.now();
+        const holdDuration = now - this.yStartTime;
         this.yHeld = false;
         this._emit({
             phoneme: 'Y',
@@ -137,7 +138,8 @@ export class KeyboardProvider {
             emittedAt: now,
             detectorLatencyMs: 0,
             synthetic: false,
-            holdDurationMs: now - this.yStartTime
+            holdDurationMs: holdDuration,
+            holdValid: holdDuration > 200
         });
         this.yStartTime = 0;
     }

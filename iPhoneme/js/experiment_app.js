@@ -49,6 +49,11 @@ export class ExperimentApp {
 
         // Input lock (cooldown during transitions)
         this.inputLocked = false;
+        this._trialAdvancing = false;
+
+        // Timer IDs for cleanup
+        this._autoStartFallbackTimer = null;
+        this._interTaskTimer = null;
         
         // Session state
         this.sessionActive = false;
@@ -92,6 +97,11 @@ export class ExperimentApp {
 
         // Auto task start after calibration
         window.addEventListener('headCalibrationCompleted', () => {
+            // Cancel the fallback timer — calibration completed normally
+            if (this._autoStartFallbackTimer) {
+                clearTimeout(this._autoStartFallbackTimer);
+                this._autoStartFallbackTimer = null;
+            }
             if (this.sessionActive && !this.activeTaskType) {
                 console.log('[App] Auto-starting first task after calibration');
                 this.startTrial('directed_selection', false);
@@ -166,8 +176,9 @@ export class ExperimentApp {
 
         UIComponents.showToast('Session started! First task will begin shortly.', 'success', 2500);
 
-        // Auto start sequence after 5 seconds if not calibrating
-        setTimeout(() => {
+        // Auto start sequence after 4 seconds if not calibrating
+        this._autoStartFallbackTimer = setTimeout(() => {
+            this._autoStartFallbackTimer = null;
             const isCalibrating = (typeof HeadCalibration !== 'undefined' && HeadCalibration.isActive && HeadCalibration.isActive());
             if (!this.activeTaskType && !isCalibrating) {
                 this.startTrial('directed_selection', false);
@@ -357,12 +368,10 @@ export class ExperimentApp {
             }
 
             // Also end drag / text selection for Task 4
+            // Trial completion is handled by the task's onComplete callback
             if (this.activeTaskType === 'drag_text_select') {
                 const holdValid = event.holdValid !== false;
-                const result = this.activeTask.endSelection(event.source, holdValid);
-                if (result && result.success !== undefined) {
-                    this._handleTrialResult(result);
-                }
+                this.activeTask.endSelection(event.source, holdValid);
             }
         }
     }
@@ -510,6 +519,7 @@ export class ExperimentApp {
                     
                     if (elapsed >= this.dwellTimeMs) {
                         this._clearDwell();
+                        if (this.inputLocked) return;
                         logger.dwellCommit(targetId, this.pointerX, this.pointerY, elapsed);
                         
                         // Dwell triggers the action of the gazed target
@@ -541,7 +551,15 @@ export class ExperimentApp {
 
     startTrial(taskType, isPractice = false) {
         this._clearDwell();
+
+        // Cancel any pending inter-task auto-start timer
+        if (this._interTaskTimer) {
+            clearTimeout(this._interTaskTimer);
+            this._interTaskTimer = null;
+        }
+
         this.activeTaskType = taskType;
+        this.currentTaskIndex = this.taskSequence.indexOf(taskType);
         
         const container = document.getElementById('task-container');
         if (!container) return;
@@ -575,6 +593,9 @@ export class ExperimentApp {
     }
 
     _advanceTrial() {
+        this._clearDwell();
+        this.inputLocked = true;
+
         const trialData = this.taskEngine.nextTrial();
         
         if (!trialData) {
@@ -583,9 +604,9 @@ export class ExperimentApp {
             this.activeTask?.destroy();
             this.activeTask = null;
             
-            // Auto advance task
-            this.currentTaskIndex = this.taskSequence.indexOf(this.activeTaskType);
-            const nextTaskType = this.taskSequence[this.currentTaskIndex + 1];
+            // Auto advance task (use tracked index, not indexOf)
+            const nextTaskIndex = this.currentTaskIndex + 1;
+            const nextTaskType = this.taskSequence[nextTaskIndex];
 
             const container = document.getElementById('task-container');
             if (container) {
@@ -605,9 +626,11 @@ export class ExperimentApp {
                         </div>
                     `;
                     
-                    let autoStartTimer;
                     const startNext = () => {
-                        clearTimeout(autoStartTimer);
+                        if (this._interTaskTimer) {
+                            clearTimeout(this._interTaskTimer);
+                            this._interTaskTimer = null;
+                        }
                         this.startTrial(nextTaskType, false);
                     };
 
@@ -619,8 +642,8 @@ export class ExperimentApp {
                         if (bar) bar.style.width = '100%';
                     }, 50);
 
-                    // Auto start
-                    autoStartTimer = setTimeout(startNext, 4000);
+                    // Auto start (stored for cleanup)
+                    this._interTaskTimer = setTimeout(startNext, 4000);
                 } else {
                     // All tasks in current condition are complete!
                     // Show post-condition questionnaire
@@ -653,6 +676,12 @@ export class ExperimentApp {
     }
 
     _handleTrialResult(result) {
+        // Guard: prevent double-call (e.g. both handleSelect return + onComplete)
+        if (this._trialAdvancing) return;
+        this._trialAdvancing = true;
+        this.inputLocked = true;
+        this._clearDwell();
+
         this.taskEngine.completeTrial(result);
         
         const msg = result.success ? '✅ Correct!' : '❌ Try again';
@@ -661,6 +690,7 @@ export class ExperimentApp {
 
         // Auto-advance after delay
         setTimeout(() => {
+            this._trialAdvancing = false;
             this._advanceTrial();
         }, 1200);
     }
